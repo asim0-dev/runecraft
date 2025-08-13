@@ -10,6 +10,7 @@ const supabase = createClient(
 const COOLDOWN_MS = 5000;
 
 export default async function begHandler(req: NextApiRequest, res: NextApiResponse) {
+  // 1. Auth check
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -21,6 +22,7 @@ export default async function begHandler(req: NextApiRequest, res: NextApiRespon
   }
   const userId = userData.user.id;
 
+  // 2. Cooldown check for 'beg' action
   const { data: lastAction, error: cooldownError } = await supabase
     .from('actions_log')
     .select('created_at')
@@ -42,8 +44,12 @@ export default async function begHandler(req: NextApiRequest, res: NextApiRespon
     }
   }
 
+  // 3. Generate coin loot
   const coinsAdded = Math.floor(Math.random() * (50 - 10 + 1)) + 10;
 
+  // 4. DB transaction:
+  // - Increment coins in the profiles table.
+  // - Log the action.
   try {
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
@@ -66,23 +72,6 @@ export default async function begHandler(req: NextApiRequest, res: NextApiRespon
     return res.status(500).json({ error: 'Failed to update database' });
   }
 
+  // 5. Return result
   res.status(200).json({ success: true, coinsAdded });
-}
-
-// Utility function to roll rarity based on weights (needed for the other files, can be removed here)
-const rarityWeights: Record<string, number> = {
-  common: 60,
-  uncommon: 25,
-  rare: 10,
-  epic: 4,
-  legendary: 1,
-};
-function rollRarity(): string {
-  const total = Object.values(rarityWeights).reduce((a, b) => a + b, 0);
-  let rand = Math.random() * total;
-  for (const [rarity, weight] of Object.entries(rarityWeights)) {
-    if (rand < weight) return rarity;
-    rand -= weight;
-  }
-  return 'common';
 }
