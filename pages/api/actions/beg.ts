@@ -47,13 +47,22 @@ export default async function begHandler(req: NextApiRequest, res: NextApiRespon
   // 3. Generate coin loot
   const coinsAdded = Math.floor(Math.random() * (50 - 10 + 1)) + 10;
 
-  // 4. DB transaction:
-  // - Increment coins in the profiles table.
-  // - Log the action.
+  // 4. DB transaction
   try {
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', userId)
+        .single();
+
+    if (profileError || !profile) {
+      console.error('Failed to fetch profile:', profileError);
+      return res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
-      .update({ coins: supabase.raw('coins + ??', [coinsAdded]) })
+      .update({ coins: profile.coins + coinsAdded })
       .eq('id', userId)
       .select('*')
       .single();
