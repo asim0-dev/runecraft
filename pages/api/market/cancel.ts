@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (txError) {
     console.error(txError);
     return res.status(500).json({ error: "Failed to cancel listing" });
-  }
+  }// A small change to trigger a new build
 
   return res.status(200).json({ success: true, message: "Listing cancelled and items returned" });
 }
