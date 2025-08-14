@@ -2,11 +2,20 @@
 import Link from 'next/link';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
 export default function HomePage() {
   const session = useSession();
   const supabase = useSupabaseClient();
   const router = useRouter();
+  
+  useEffect(() => {
+    // This is a simple check to see if the user is already logged in
+    // and redirect them to the gameplay page.
+    if (session) {
+      router.push('/gameplay');
+    }
+  }, [session, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
