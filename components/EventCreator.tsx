@@ -1,6 +1,8 @@
-// components/EventCreator.tsx
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function EventCreator() {
   const router = useRouter();
@@ -12,6 +14,12 @@ export default function EventCreator() {
   const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [supabase, setSupabase] = useState<any>(null);
+
+  // FIX: Initialize the Supabase client on the client-side
+  useEffect(() => {
+    setSupabase(createClientComponentClient());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +140,7 @@ export default function EventCreator() {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !supabase}
           className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md font-bold hover:bg-indigo-700 transition-colors"
         >
           {loading ? "Creating..." : "Create Event"}

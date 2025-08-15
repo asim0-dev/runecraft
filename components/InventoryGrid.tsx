@@ -1,4 +1,6 @@
 // components/InventoryGrid.tsx
+"use client"; // <-- FIX: Add this line
+
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
@@ -11,9 +13,9 @@ interface InventoryItem {
 }
 
 export default function InventoryGrid() {
-  const supabase = createClientComponentClient();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     async function fetchInventory() {
@@ -51,8 +53,9 @@ export default function InventoryGrid() {
       {inventory.length > 0 ? (
         inventory.map((item, index) => (
           <div key={index} className="bg-gray-800 p-4 rounded-lg shadow-md text-center">
-            {item.items && <span className="text-4xl">{item.items.emoji}</span>}
-            {item.items && <p className="mt-2 text-sm text-gray-300">{item.items.name}</p>}
+            {/* FIX: Use optional chaining to safely access nested properties */}
+            <span className="text-4xl">{item.items?.emoji}</span>
+            <p className="mt-2 text-sm text-gray-300">{item.items?.name}</p>
             <p className="text-lg font-bold">x{item.qty}</p>
           </div>
         ))

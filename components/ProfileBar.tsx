@@ -1,4 +1,8 @@
-// components/ProfileBar.tsx
+// ==========================================================
+// 1. Corrected code for: components/ProfileBar.tsx
+// ==========================================================
+"use client"; // <-- FIX: Add this line
+
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
@@ -8,9 +12,9 @@ interface Profile {
 }
 
 export default function ProfileBar() {
-  const supabase = createClientComponentClient();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     async function fetchProfile() {

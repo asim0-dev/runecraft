@@ -1,12 +1,16 @@
-// components/ActionButtons.tsx
-import { useState } from 'react';
+// ==========================================================
+// 3. Corrected code for: components/ActionButtons.tsx
+// ==========================================================
+"use client"; // <-- FIX: Add this line
+
+import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 const COOLDOWN_MS = 5000; // Must match backend
 
 export default function ActionButtons() {
-  const supabase = createClientComponentClient();
   const [cooldowns, setCooldowns] = useState<Record<string, boolean>>({});
+  const supabase = createClientComponentClient();
 
   const handleAction = async (action: 'hunt' | 'fish' | 'beg') => {
     if (cooldowns[action]) {
@@ -19,12 +23,10 @@ export default function ActionButtons() {
     }, COOLDOWN_MS);
 
     try {
-      const token = await supabase.auth.getSession();
       const res = await fetch(`/api/actions/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.data.session?.access_token}`,
         },
       });
 

@@ -1,15 +1,75 @@
-// File: /pages/admin.tsx
-// This is the final, corrected version of your admin page.
+// ==========================================================
+// 3. Corrected code for: components/ActionButtons.tsx
+// ==========================================================
+"use client"; // <-- FIX: Add this line
 
-import AdminDashboard from '@/components/AdminDashboard'; // Corrected path
-import AdminGate from '@/components/AdminGate';       // Corrected path
+import { useState, useEffect } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-export default function AdminPage() {
+const COOLDOWN_MS = 5000; // Must match backend
+
+export default function ActionButtons() {
+  const [cooldowns, setCooldowns] = useState<Record<string, boolean>>({});
+  const supabase = createClientComponentClient();
+
+  const handleAction = async (action: 'hunt' | 'fish' | 'beg') => {
+    if (cooldowns[action]) {
+      return;
+    }
+
+    setCooldowns(prev => ({ ...prev, [action]: true }));
+    setTimeout(() => {
+      setCooldowns(prev => ({ ...prev, [action]: false }));
+    }, COOLDOWN_MS);
+
+    try {
+      const res = await fetch(`/api/actions/${action}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to perform action');
+      }
+
+      alert(`Action successful! You received: ${JSON.stringify(data.loot || data.coinsAdded)}`);
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+    }
+  };
+
   return (
-    <AdminGate>
-      <div className="container mx-auto p-4 md:p-8">
-        <AdminDashboard />
-      </div>
-    </AdminGate>
+    <div className="flex justify-center space-x-4 mt-8">
+      <button
+        onClick={() => handleAction('hunt')}
+        disabled={cooldowns.hunt}
+        className={`px-6 py-3 rounded-lg text-white font-bold transition-transform transform ${
+          cooldowns.hunt ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:scale-105'
+        }`}
+      >
+        {cooldowns.hunt ? 'Hunting (5s CD)' : 'Hunt'}
+      </button>
+      <button
+        onClick={() => handleAction('fish')}
+        disabled={cooldowns.fish}
+        className={`px-6 py-3 rounded-lg text-white font-bold transition-transform transform ${
+          cooldowns.fish ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:scale-105'
+        }`}
+      >
+        {cooldowns.fish ? 'Fishing (5s CD)' : 'Fish'}
+      </button>
+      <button
+        onClick={() => handleAction('beg')}
+        disabled={cooldowns.beg}
+        className={`px-6 py-3 rounded-lg text-white font-bold transition-transform transform ${
+          cooldowns.beg ? 'bg-gray-600 cursor-not-allowed' : 'bg-yellow-600 hover:scale-105'
+        }`}
+      >
+        {cooldowns.beg ? 'Begging (5s CD)' : 'Beg'}
+      </button>
+    </div>
   );
 }

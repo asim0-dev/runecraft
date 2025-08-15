@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function AdminDashboard() {
-  // Your actual admin UID
+  const [supabase, setSupabase] = useState<any>(null);
+  // Replace this with your actual admin UID
   const ADMIN_USER_ID = "558ab90b-6e5c-4376-a6d5-043683ed8fe5";
 
   const [targetUserId, setTargetUserId] = useState("");
   const [amount, setAmount] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  // FIX: Initialize the Supabase client on the client-side
+  useEffect(() => {
+    setSupabase(createClientComponentClient());
+  }, []);
+
 
   async function handleAdjustCoins(e: React.FormEvent) {
     e.preventDefault();
@@ -71,21 +79,21 @@ export default function AdminDashboard() {
         <div className="flex space-x-2">
           <button
             onClick={() => handleQuickAdjust(100)}
-            disabled={loading}
+            disabled={loading || !supabase}
             className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 p-2 rounded font-semibold"
           >
             +100 Coins
           </button>
           <button
             onClick={() => handleQuickAdjust(1000)}
-            disabled={loading}
+            disabled={loading || !supabase}
             className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 p-2 rounded font-semibold"
           >
             +1000 Coins
           </button>
           <button
             onClick={() => handleQuickAdjust(-100)}
-            disabled={loading}
+            disabled={loading || !supabase}
             className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 p-2 rounded font-semibold"
           >
             -100 Coins
@@ -119,7 +127,7 @@ export default function AdminDashboard() {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !supabase}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 p-2 rounded font-semibold"
         >
           {loading ? "Processing..." : "Adjust Coins"}
