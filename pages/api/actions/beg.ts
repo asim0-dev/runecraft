@@ -48,14 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const coinsAdded = Math.floor(Math.random() * 41) + 10;
   
-  // FIX: Update the user's coins and last_beg timestamp
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({ 
-      coins: supabase.rpc('increment_coins', { uid: userId, amt: coinsAdded }), 
-      last_beg: now.toISOString() 
-    })
-    .eq('id', userId);
+  // FIX: Correctly pass parameters to the rpc function
+  const { error: updateError } = await supabase.rpc('increment_coins', { uid: userId, amt: coinsAdded });
 
   if (updateError) {
     console.error('Failed to update database:', updateError);
