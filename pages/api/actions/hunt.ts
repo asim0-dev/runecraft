@@ -1,4 +1,3 @@
-// pages/api/actions/hunt.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
 
