@@ -1,86 +1,56 @@
-// pages/api/actions/beg.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { NextApiRequest, NextApiResponse } from "next";
+import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-const COOLDOWN_MS = 5000;
-
-export default async function begHandler(req: NextApiRequest, res: NextApiResponse) {
-  // 1. Auth check
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData.user) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-  const userId = userData.user.id;
+  const supabase = createServerSupabaseClient({ req, res });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // 2. Cooldown check for 'beg' action
-  const { data: lastAction, error: cooldownError } = await supabase
-    .from('actions_log')
-    .select('created_at')
-    .eq('user_id', userId)
-    .eq('action', 'beg')
-    .order('created_at', { ascending: false })
-    .limit(1)
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // Fetch the user's profile to get the last_beg timestamp
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("last_beg")
+    .eq("id", user.id)
     .single();
 
-  if (cooldownError && cooldownError.code !== 'PGRST116') {
-    console.error('Cooldown check error:', cooldownError);
-    return res.status(500).json({ error: 'Failed to check cooldown' });
+  if (profileError) {
+    console.error(profileError);
+    return res.status(500).json({ error: "Failed to fetch profile" });
   }
 
-  if (lastAction) {
-    const lastTime = new Date(lastAction.created_at).getTime();
-    if (Date.now() - lastTime < COOLDOWN_MS) {
-      return res.status(429).json({ error: 'Cooldown active' });
-    }
+  const now = new Date();
+  const lastBeg = new Date(profile.last_beg);
+  const cooldown = 30000; // 30 seconds
+  
+  if (now.getTime() - lastBeg.getTime() < cooldown) {
+    return res.status(429).json({ error: "Still on cooldown" });
   }
 
-  // 3. Generate coin loot
-  const coinsAdded = Math.floor(Math.random() * (50 - 10 + 1)) + 10;
+  // 1. Get a random amount of coins between 10-50
+  const coinsAdded = Math.floor(Math.random() * 41) + 10;
+  
+  // 2. Update the user's coins and last_beg timestamp
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ 
+      coins: supabase.rpc("increment_coins", { uid: user.id, amt: coinsAdded }), 
+      last_beg: now.toISOString() 
+    })
+    .eq("id", user.id);
 
-  // 4. DB transaction
-  try {
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('coins')
-        .eq('id', userId)
-        .single();
-
-    if (profileError || !profile) {
-      console.error('Failed to fetch profile:', profileError);
-      return res.status(500).json({ error: 'Failed to fetch profile' });
-    }
-
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
-      .update({ coins: profile.coins + coinsAdded })
-      .eq('id', userId)
-      .select('*')
-      .single();
-
-    if (updateError) {
-      console.error('Coin update error:', updateError);
-      return res.status(500).json({ error: 'Failed to update profile' });
-    }
-
-    await supabase.from('actions_log').insert({
-      user_id: userId,
-      action: 'beg',
-    });
-  } catch (dbError) {
-    console.error('Database transaction error:', dbError);
-    return res.status(500).json({ error: 'Failed to update database' });
+  if (updateError) {
+    console.error(updateError);
+    return res.status(500).json({ error: "Failed to update profile" });
   }
 
-  // 5. Return result
-  res.status(200).json({ success: true, coinsAdded });
+  return res.status(200).json({ success: true, coinsAdded });
 }

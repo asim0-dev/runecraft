@@ -1,11 +1,6 @@
 // pages/api/actions/fish.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
 
 const rarityWeights: Record<string, number> = {
   common: 60,
@@ -28,12 +23,9 @@ function rollRarity(): string {
 }
 
 export default async function fishHandler(req: NextApiRequest, res: NextApiResponse) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const supabase = createServerSupabaseClient({ req, res });
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) {
     return res.status(401).json({ error: 'Invalid token' });
   }
