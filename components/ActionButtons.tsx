@@ -1,7 +1,4 @@
-// ==========================================================
-// 3. Corrected code for: components/ActionButtons.tsx
-// ==========================================================
-"use client"; // <-- FIX: Add this line
+"use client";
 
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -23,10 +20,18 @@ export default function ActionButtons() {
     }, COOLDOWN_MS);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error("User not authenticated.");
+      }
+
       const res = await fetch(`/api/actions/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
