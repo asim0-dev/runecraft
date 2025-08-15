@@ -14,19 +14,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const userId = userData.user.id;
 
+  // FIX: Fetch the user's profile and check if it exists
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('last_beg')
     .eq('id', userId)
     .single();
 
-  if (profileError) {
+  if (profileError && profileError.code !== 'PGRST116') {
     console.error('Failed to fetch profile for cooldown check:', profileError);
     return res.status(500).json({ error: 'Failed to fetch profile' });
   }
 
   const now = new Date();
-  const lastBeg = new Date(profile.last_beg);
+  let lastBeg = new Date(0); // Default to a past date
+  
+  if (profile) {
+    lastBeg = new Date(profile.last_beg);
+  }
+
   const cooldown = 30000; // 30 seconds
   
   if (now.getTime() - lastBeg.getTime() < cooldown) {
@@ -35,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const coinsAdded = Math.floor(Math.random() * 41) + 10;
   
+  // FIX: Update the user's coins and last_beg timestamp
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ 
