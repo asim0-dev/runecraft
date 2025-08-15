@@ -77,6 +77,16 @@ export default async function huntHandler(req: NextApiRequest, res: NextApiRespo
     }
   }
 
+  // Add a fallback to ensure at least one item is given
+  if (loot.length === 0) {
+    const commonPool = itemsByRarity['common'];
+    if (commonPool && commonPool.length > 0) {
+      const item = commonPool[Math.floor(Math.random() * commonPool.length)];
+      loot.push(item);
+      lootItemsForDB.push({ item_id: item.id, qty: 1 });
+    }
+  }
+
   try {
     for (const item of lootItemsForDB) {
       await supabase.rpc('increment_inventory', {
