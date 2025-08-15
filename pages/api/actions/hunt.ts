@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 const rarityWeights: Record<string, number> = {
   common: 60,
@@ -22,7 +22,7 @@ function rollRarity(): string {
 }
 
 export default async function huntHandler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient({ req, res });
+  const supabase = createPagesServerClient({ req, res });
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {

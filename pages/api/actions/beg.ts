@@ -1,29 +1,28 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const supabase = createServerSupabaseClient({ req, res });
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = createPagesServerClient({ req, res });
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  if (!user) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (userError || !userData.user) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
+  const userId = userData.user.id;
 
   const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("last_beg")
-    .eq("id", user.id)
+    .from('profiles')
+    .select('last_beg')
+    .eq('id', userId)
     .single();
 
   if (profileError) {
-    console.error(profileError);
-    return res.status(500).json({ error: "Failed to fetch profile" });
+    console.error('Failed to fetch profile for cooldown check:', profileError);
+    return res.status(500).json({ error: 'Failed to fetch profile' });
   }
 
   const now = new Date();
@@ -31,22 +30,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cooldown = 30000; // 30 seconds
   
   if (now.getTime() - lastBeg.getTime() < cooldown) {
-    return res.status(429).json({ error: "Still on cooldown" });
+    return res.status(429).json({ error: 'Cooldown active' });
   }
 
   const coinsAdded = Math.floor(Math.random() * 41) + 10;
   
   const { error: updateError } = await supabase
-    .from("profiles")
+    .from('profiles')
     .update({ 
-      coins: supabase.rpc("increment_coins", { uid: user.id, amt: coinsAdded }), 
+      coins: supabase.rpc('increment_coins', { uid: userId, amt: coinsAdded }), 
       last_beg: now.toISOString() 
     })
-    .eq("id", user.id);
+    .eq('id', userId);
 
   if (updateError) {
-    console.error(updateError);
-    return res.status(500).json({ error: "Failed to update profile" });
+    console.error('Failed to update database:', updateError);
+    return res.status(500).json({ error: 'Failed to update database' });
   }
 
   return res.status(200).json({ success: true, coinsAdded });
