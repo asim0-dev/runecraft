@@ -13,6 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Invalid token' });
   }
   const userId = userData.user.id;
+  const userEmail = userData.user.email;
 
   // FIX: Fetch the user's profile and check if it exists
   const { data: profile, error: profileError } = await supabase
@@ -20,6 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .select('last_beg')
     .eq('id', userId)
     .single();
+
+  // If no profile is found, create one for the new user.
+  if (!profile) {
+    await supabase.from('profiles').insert({ id: userId, username: userEmail, created_at: new Date().toISOString() });
+    return res.status(200).json({ success: true, coinsAdded: 0 });
+  }
 
   if (profileError && profileError.code !== 'PGRST116') {
     console.error('Failed to fetch profile for cooldown check:', profileError);
