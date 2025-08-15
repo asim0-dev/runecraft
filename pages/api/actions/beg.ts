@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // Fetch the user's profile to get the last_beg timestamp
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("last_beg")
@@ -35,10 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ error: "Still on cooldown" });
   }
 
-  // 1. Get a random amount of coins between 10-50
   const coinsAdded = Math.floor(Math.random() * 41) + 10;
   
-  // 2. Update the user's coins and last_beg timestamp
   const { error: updateError } = await supabase
     .from("profiles")
     .update({ 
