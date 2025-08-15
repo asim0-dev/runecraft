@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 const rarityWeights: Record<string, number> = {
   common: 60,
@@ -22,7 +22,7 @@ function rollRarity(): string {
 }
 
 export default async function fishHandler(req: NextApiRequest, res: NextApiResponse) {
-  const supabase = createServerSupabaseClient({ req, res });
+  const supabase = createPagesServerClient({ req, res });
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {
@@ -72,16 +72,6 @@ export default async function fishHandler(req: NextApiRequest, res: NextApiRespo
     const pool = itemsByRarity[rarity];
     if (pool && pool.length > 0) {
       const item = pool[Math.floor(Math.random() * pool.length)];
-      loot.push(item);
-      lootItemsForDB.push({ item_id: item.id, qty: 1 });
-    }
-  }
-
-  // Add a fallback to ensure at least one item is given
-  if (loot.length === 0) {
-    const commonPool = itemsByRarity['common'];
-    if (commonPool && commonPool.length > 0) {
-      const item = commonPool[Math.floor(Math.random() * commonPool.length)];
       loot.push(item);
       lootItemsForDB.push({ item_id: item.id, qty: 1 });
     }
